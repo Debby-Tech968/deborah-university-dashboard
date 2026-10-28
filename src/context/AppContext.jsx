@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { DEMO_ACCOUNTS, NOTIFICATIONS, STUDENT_FINANCE } from "../data";
 import { naira, uid } from "../lib/format";
+import { ROUTE_LOADER_MS } from "../lib/timing";
 
 const AppContext = createContext(null);
 
@@ -60,7 +61,7 @@ export function AppProvider({ children }) {
       window.scrollTo({ top: 0, behavior: "instant" });
       setRouteLoading(true);
       window.clearTimeout(routeTimer.current);
-      routeTimer.current = window.setTimeout(() => setRouteLoading(false), 420);
+      routeTimer.current = window.setTimeout(() => setRouteLoading(false), ROUTE_LOADER_MS);
     };
     window.addEventListener("hashchange", onHashChange);
     return () => {
