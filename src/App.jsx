@@ -4,7 +4,6 @@ import { IconSprite } from "./components/Icon";
 import PageLoader from "./components/Loader";
 import PortalLayout from "./components/Layout";
 import { Toasts } from "./components/Ui";
-import { BOOT_LOADER_MS } from "./lib/timing";
 import SignIn from "./pages/SignIn";
 import AdminOverview from "./pages/admin/Overview";
 import AdminStudents from "./pages/admin/Students";
@@ -64,7 +63,7 @@ function AppBody() {
   const [booting, setBooting] = useState(true);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setBooting(false), BOOT_LOADER_MS);
+    const timer = window.setTimeout(() => setBooting(false), 900);
     return () => window.clearTimeout(timer);
   }, []);
 
