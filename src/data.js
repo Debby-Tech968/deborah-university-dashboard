@@ -6,34 +6,52 @@ export const UNIVERSITY = {
   term: "Fall 2026",
   week: 9,
   totalWeeks: 15,
-  dateLabel: "Wednesday, 28 October 2026",
-  shortDate: "Wed 28 Oct",
   supportEmail: "support@deborah.edu",
   bursaryEmail: "bursary@deborah.edu",
   phone: "+234 812 555 0142",
   address: "12 Innovation Way, Yaba, Lagos"
 };
 
-export const DEMO_ACCOUNTS = {
-  student: {
-    role: "student",
-    name: "Amara Okafor",
-    firstName: "Amara",
-    email: "amara.okafor@deborah.edu",
-    password: "student123",
-    title: "BSc Computer Science · Year 3",
-    id: "DU-2023-0142"
-  },
-  admin: {
+export const STUDENT_PASSWORD = "student123";
+
+export const FEATURED_STUDENT_EMAILS = [
+  "amara.okafor@deborah.edu",
+  "daniel.reyes@deborah.edu",
+  "grace.mwangi@deborah.edu",
+  "ethan.clarke@deborah.edu"
+];
+
+export const ADMIN_PASSWORD = "admin123";
+
+export const ADMIN_ACCOUNTS = [
+  {
     role: "admin",
     name: "Dr. Maya Ellis",
     firstName: "Maya",
     email: "m.ellis@deborah.edu",
-    password: "admin123",
+    password: ADMIN_PASSWORD,
     title: "University Registrar",
     id: "STAFF-0041"
+  },
+  {
+    role: "admin",
+    name: "Daniel Okoro",
+    firstName: "Daniel",
+    email: "d.okoro@deborah.edu",
+    password: ADMIN_PASSWORD,
+    title: "University Bursar",
+    id: "STAFF-0088"
+  },
+  {
+    role: "admin",
+    name: "Dr. Sarah Whitfield",
+    firstName: "Sarah",
+    email: "s.whitfield@deborah.edu",
+    password: ADMIN_PASSWORD,
+    title: "Dean, College of Computing",
+    id: "STAFF-0017"
   }
-};
+];
 
 export const NAV = {
   admin: [
@@ -330,6 +348,32 @@ export const STUDENTS = [
     feeBalance: 0
   }
 ];
+
+export function studentAccount(student) {
+  return {
+    role: "student",
+    name: `${student.first} ${student.last}`,
+    firstName: student.first,
+    email: student.email,
+    password: STUDENT_PASSWORD,
+    title: `BSc ${student.program} · Year ${student.year}`,
+    id: student.id,
+    program: student.program,
+    department: student.department,
+    year: student.year,
+    gpa: student.gpa,
+    status: student.status,
+    phone: student.phone,
+    advisor: student.advisor,
+    feeBalance: student.feeBalance
+  };
+}
+
+export const STUDENT_ACCOUNTS = STUDENTS.map(studentAccount);
+
+export const FEATURED_STUDENT_ACCOUNTS = FEATURED_STUDENT_EMAILS.map((email) =>
+  STUDENT_ACCOUNTS.find((account) => account.email === email)
+).filter(Boolean);
 
 export const APPLICATIONS = [
   {
@@ -1065,3 +1109,64 @@ export const ADMIN_FINANCE = {
     { program: "Information Technology", tuition: 1180000 }
   ]
 };
+
+function roundToThousand(value) {
+  return Math.round(value / 1000) * 1000;
+}
+
+export function buildStudentFinance(student) {
+  if (!student) return structuredClone(STUDENT_FINANCE);
+  if (student.id === "DU-2023-0142") return structuredClone(STUDENT_FINANCE);
+
+  const tuition =
+    ADMIN_FINANCE.feeSchedule.find((item) => item.program === student.program)?.tuition ??
+    1250000;
+  const scholarship = (student.gpa ?? 0) >= 3.8 ? 250000 : 0;
+  const netPayable = Math.max(0, tuition - scholarship);
+  const balance = Math.min(
+    netPayable,
+    Math.max(0, Math.round(Number(student.feeBalance) || 0))
+  );
+  const paid = Math.max(0, netPayable - balance);
+
+  const first = roundToThousand(netPayable * 0.5);
+  const second = roundToThousand(netPayable * 0.25);
+  const third = Math.max(0, netPayable - first - second);
+  const plan = [
+    { label: "Instalment 1", amount: first, due: "12 September 2026" },
+    { label: "Instalment 2", amount: second, due: "18 October 2026" },
+    { label: "Instalment 3", amount: third, due: "15 November 2026" }
+  ];
+
+  const paymentMeta = [
+    { date: "12 Sep 2026", method: "Bank transfer" },
+    { date: "18 Oct 2026", method: "Card" },
+    { date: "15 Nov 2026", method: "USSD" }
+  ];
+  const payments = [];
+  let remaining = paid;
+
+  plan.forEach((item, index) => {
+    if (remaining <= 0) return;
+    const amount = Math.min(remaining, item.amount);
+    if (amount <= 0) return;
+    const meta = paymentMeta[index];
+    payments.unshift({
+      ref: `PAY-2026-${student.id.slice(-4)}-${index + 1}`,
+      date: meta.date,
+      amount,
+      method: meta.method,
+      status: "Completed"
+    });
+    remaining -= amount;
+  });
+
+  return {
+    totalTuition: tuition,
+    scholarship,
+    paid,
+    nextDue: "15 November 2026",
+    plan,
+    payments
+  };
+}

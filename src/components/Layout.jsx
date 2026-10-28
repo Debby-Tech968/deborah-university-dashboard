@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { NAV, UNIVERSITY } from "../data";
 import { useApp } from "../context/AppContext";
 import { classNames } from "../lib/format";
+import { formatCampusDate, useCampusNow } from "../lib/time";
 import { Icon } from "./Icon";
 import { Avatar, Brand } from "./Ui";
 
@@ -28,14 +29,25 @@ export default function PortalLayout({ children }) {
     notifications,
     unreadCount,
     markAllRead,
-    markRead
+    markRead,
+    exitAdminPreview
   } = useApp();
   const [openMenu, setOpenMenu] = useState(null);
   const actionsRef = useRef(null);
+  const now = useCampusNow();
+  const shortDate = formatCampusDate(now, {
+    weekday: "short",
+    day: "2-digit",
+    month: "short"
+  }).replace(",", "");
 
   const items = NAV[session.role];
   const currentLabel = ROUTE_LABELS[route] || "Workspace";
-  const roleLabel = session.role === "admin" ? "Admin" : "Student";
+  const roleLabel = session.adminPreview
+    ? "Admin preview"
+    : session.role === "admin"
+      ? "Admin"
+      : "Student";
 
   useEffect(() => {
     setOpenMenu(null);
@@ -158,7 +170,7 @@ export default function PortalLayout({ children }) {
 
           <div className="topbar-right" ref={actionsRef}>
             <span className="topbar-date">
-              <Icon name="calendar" /> {UNIVERSITY.shortDate}
+              <Icon name="calendar" /> {shortDate}
             </span>
 
             <div className="popover-wrap">
@@ -249,6 +261,22 @@ export default function PortalLayout({ children }) {
         </header>
 
         <main className="page" id="main" tabIndex={-1}>
+          {session.adminPreview && (
+            <div className="admin-preview-banner" role="status">
+              <span className="admin-preview-icon" aria-hidden="true">
+                <Icon name="shield" />
+              </span>
+              <p>
+                <strong>Administrator preview</strong>
+                <span>
+                  Viewing {session.name}&apos;s student portal as {session.adminPreview.name}.
+                </span>
+              </p>
+              <button className="btn btn--ghost btn--sm" type="button" onClick={exitAdminPreview}>
+                <Icon name="chevron-left" /> Return to admin
+              </button>
+            </div>
+          )}
           {children}
         </main>
       </div>

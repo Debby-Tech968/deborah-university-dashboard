@@ -48,6 +48,58 @@
   flex-wrap: wrap;
 }
 
+.admin-preview-banner {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 16px;
+  padding: 10px 13px;
+  border: 1px solid #eadfc5;
+  border-radius: 11px;
+  background: linear-gradient(95deg, #fffaef, #fff);
+  box-shadow: var(--shadow-sm);
+}
+
+.admin-preview-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 29px;
+  height: 29px;
+  border-radius: 8px;
+  background: var(--gold-soft);
+  color: var(--gold-deep);
+  flex: none;
+}
+
+.admin-preview-icon .icon {
+  width: 15px;
+  height: 15px;
+}
+
+.admin-preview-banner p {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.admin-preview-banner strong {
+  color: var(--ink);
+  font-size: 0.58rem;
+  font-weight: 700;
+}
+
+.admin-preview-banner p span {
+  color: var(--muted);
+  font-size: 0.52rem;
+  line-height: 1.45;
+}
+
+.admin-preview-banner .btn {
+  flex: none;
+}
+
 /* Panels ----------------------------------------------------------------- */
 .panel {
   min-width: 0;
@@ -3695,6 +3747,19 @@
 }
 
 @media (max-width: 560px) {
+  .admin-preview-banner {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .admin-preview-banner p {
+    flex-basis: calc(100% - 40px);
+  }
+
+  .admin-preview-banner .btn {
+    width: 100%;
+  }
+
   .page-sub {
     font-size: 0.66rem;
   }

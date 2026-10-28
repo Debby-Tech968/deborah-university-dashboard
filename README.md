@@ -32,15 +32,32 @@ npm run preview
 
 ## Demo accounts
 
-| Portal | Email | Password |
+### Students
+
+Every student email in the directory can sign in with `student123`. The sign-in picker highlights four featured accounts:
+
+| Student | Email | Password |
 | --- | --- | --- |
-| Student | `amara.okafor@deborah.edu` | `student123` |
-| Administrator | `m.ellis@deborah.edu` | `admin123` |
+| Amara Okafor | `amara.okafor@deborah.edu` | `student123` |
+| Daniel Reyes | `daniel.reyes@deborah.edu` | `student123` |
+| Grace Mwangi | `grace.mwangi@deborah.edu` | `student123` |
+| Ethan Clarke | `ethan.clarke@deborah.edu` | `student123` |
 
-Use the **Fill demo** button on the sign-in page to populate either set of credentials.
+### Administrators
 
-- Student: Amara Okafor, BSc Computer Science, Year 3
-- Administrator: Dr. Maya Ellis, University Registrar
+All administrator accounts use `admin123`:
+
+| Administrator | Role | Email | Password |
+| --- | --- | --- | --- |
+| Dr. Maya Ellis | University Registrar | `m.ellis@deborah.edu` | `admin123` |
+| Daniel Okoro | University Bursar | `d.okoro@deborah.edu` | `admin123` |
+| Dr. Sarah Whitfield | Dean, College of Computing | `s.whitfield@deborah.edu` | `admin123` |
+
+Use the demo account picker and **Fill demo** button on the sign-in page to populate credentials.
+
+Administrators can open any student's portal from **Students → View → Open portal**. The admin preview banner includes a **Return to admin** action.
+
+Greetings and current-date labels use Deborah campus time (`Africa/Lagos`). The “Good morning / afternoon / evening” greeting, topbar date, and student overview date update automatically.
 
 ## Routes
 
@@ -65,10 +82,10 @@ Computer Science, Software Engineering, Cyber Security, Data Science, Artificial
 
 The app has no backend. Demo records live in `src/data.js`, while the current session and the student's finance state are saved in browser `localStorage`:
 
-- `deborah.session.v2` — signed-in user session
-- `deborah.finance.v2` — tuition payments, receipts, and outstanding balance
+- `deborah.session.v2` — signed-in user session, including admin preview state
+- `deborah.finance.v3` — per-student tuition payments, receipts, and outstanding balances
 
-Clear those keys in the browser's developer tools to reset the demo. Payments, downloads, new students/courses, and admin payment records are client-side demo changes; some page-level changes reset on reload, while the student finance changes persist.
+Existing `deborah.finance.v2` data is imported into Amara Okafor's record the first time the app loads. Clear the keys above in the browser's developer tools to reset the demo. Payments, downloads, new students/courses, and admin payment records are client-side demo changes; some page-level changes reset on reload, while each student's finance changes persist.
 
 Downloads (receipts, statements, CSV exports) are generated in the browser. They work when the app is served locally or opened from `dist/index.html`.
 

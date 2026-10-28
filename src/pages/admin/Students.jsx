@@ -37,7 +37,7 @@ const emptyForm = {
 };
 
 export default function AdminStudents() {
-  const { toast } = useApp();
+  const { toast, openStudentPortal } = useApp();
   const [students, setStudents] = useState(STUDENTS);
   const [query, setQuery] = useState("");
   const [department, setDepartment] = useState("All");
@@ -458,8 +458,15 @@ export default function AdminStudents() {
               <button className="btn btn--ghost" type="button" onClick={() => setSelected(null)}>
                 Close
               </button>
-              <a className="btn btn--primary" href={`mailto:${selected.email}`}>
-                <Icon name="mail" /> Email student
+              <button
+                className="btn btn--primary"
+                type="button"
+                onClick={() => openStudentPortal(selected)}
+              >
+                <Icon name="arrow-right" /> Open portal
+              </button>
+              <a className="btn btn--ghost" href={`mailto:${selected.email}`}>
+                <Icon name="mail" /> Email
               </a>
             </>
           )

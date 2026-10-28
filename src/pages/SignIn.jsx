@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { DEMO_ACCOUNTS, UNIVERSITY } from "../data";
+import {
+  ADMIN_ACCOUNTS,
+  FEATURED_STUDENT_ACCOUNTS,
+  STUDENT_PASSWORD,
+  UNIVERSITY
+} from "../data";
 import { useApp } from "../context/AppContext";
 import { classNames } from "../lib/format";
 import { Brand, Field } from "../components/Ui";
@@ -14,8 +19,14 @@ export default function SignIn() {
   const [remember, setRemember] = useState(true);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
+  const [demoStudentEmail, setDemoStudentEmail] = useState(
+    FEATURED_STUDENT_ACCOUNTS[0].email
+  );
+  const [demoAdminEmail, setDemoAdminEmail] = useState(ADMIN_ACCOUNTS[0].email);
 
-  const account = DEMO_ACCOUNTS[role];
+  const demoAccounts = role === "admin" ? ADMIN_ACCOUNTS : FEATURED_STUDENT_ACCOUNTS;
+  const demoEmail = role === "admin" ? demoAdminEmail : demoStudentEmail;
+  const account = demoAccounts.find((item) => item.email === demoEmail) || demoAccounts[0];
 
   const changeRole = (nextRole) => {
     setRole(nextRole);
@@ -243,6 +254,26 @@ export default function SignIn() {
               </div>
               <span className="demo-tag">{role === "admin" ? "Admin" : "Student"}</span>
             </div>
+            <label className="demo-picker" htmlFor="demo-account">
+              <span>
+                {role === "admin" ? "Choose an administrator" : "Choose a student"}
+              </span>
+              <select
+                className="select"
+                id="demo-account"
+                value={demoEmail}
+                onChange={(event) => {
+                  if (role === "admin") setDemoAdminEmail(event.target.value);
+                  else setDemoStudentEmail(event.target.value);
+                }}
+              >
+                {demoAccounts.map((item) => (
+                  <option key={item.id} value={item.email}>
+                    {item.name} · {role === "admin" ? item.title : item.email}
+                  </option>
+                ))}
+              </select>
+            </label>
             <div className="demo-actions">
               <button className="btn btn--ghost btn--sm" type="button" onClick={fillDemo}>
                 <Icon name="sparkle" /> Fill {role === "admin" ? "admin" : "student"} demo
@@ -252,9 +283,11 @@ export default function SignIn() {
                 type="button"
                 onClick={() => {
                   const nextRole = role === "admin" ? "student" : "admin";
+                  const nextAccount =
+                    nextRole === "admin" ? ADMIN_ACCOUNTS[0] : FEATURED_STUDENT_ACCOUNTS[0];
                   changeRole(nextRole);
-                  setEmail(DEMO_ACCOUNTS[nextRole].email);
-                  setPassword(DEMO_ACCOUNTS[nextRole].password);
+                  setEmail(nextAccount.email);
+                  setPassword(nextAccount.password);
                   toast(
                     `${nextRole === "admin" ? "Administrator" : "Student"} demo credentials filled.`,
                     "info"
@@ -266,6 +299,11 @@ export default function SignIn() {
             </div>
             <p className="demo-credentials">
               {account.email} · {account.password}
+            </p>
+            <p className="demo-note">
+              {role === "admin"
+                ? `${ADMIN_ACCOUNTS.length} administrator accounts can view and manage every student portal.`
+                : `All student directory emails use ${STUDENT_PASSWORD}.`}
             </p>
           </div>
 

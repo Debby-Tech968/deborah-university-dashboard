@@ -442,6 +442,32 @@
   background: var(--surface);
 }
 
+.demo-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 10px;
+}
+
+.demo-picker > span {
+  color: var(--muted);
+  font-size: 0.5rem;
+  font-weight: 700;
+}
+
+.demo-picker .select {
+  width: 100%;
+  height: 36px;
+  font-size: 0.58rem;
+}
+
+.demo-note {
+  margin-top: 7px;
+  color: var(--muted-2);
+  font-size: 0.48rem;
+  line-height: 1.5;
+}
+
 .demo-credentials {
   margin-top: 8px;
   color: var(--muted-2);

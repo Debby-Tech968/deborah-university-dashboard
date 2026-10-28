@@ -24,6 +24,7 @@ import {
 } from "../../components/Ui";
 import { Icon } from "../../components/Icon";
 import { downloadCsv, nairaCompact, number } from "../../lib/format";
+import { getGreeting, useCampusNow } from "../../lib/time";
 
 function EnrolmentChart() {
   const width = 560;
@@ -96,7 +97,12 @@ function EnrolmentChart() {
 }
 
 export default function AdminOverview() {
-  const { navigate, toast } = useApp();
+  const { session, navigate, toast } = useApp();
+  const now = useCampusNow();
+  const greeting = getGreeting(now);
+  const greetingName = session.name.startsWith("Dr.")
+    ? `Dr. ${session.name.split(" ").slice(-1)[0]}`
+    : session.firstName;
   const [applications, setApplications] = useState(APPLICATIONS);
   const [approvals, setApprovals] = useState(APPROVALS);
   const [selectedApplication, setSelectedApplication] = useState(null);
@@ -142,7 +148,7 @@ export default function AdminOverview() {
           <p className="page-kicker">
             <Icon name="shield" /> Administrator workspace
           </p>
-          <h1>Good morning, Dr. Ellis.</h1>
+          <h1>{greeting}, {greetingName}.</h1>
           <p className="page-sub">
             Here is what is happening across {UNIVERSITY.name} today.
           </p>

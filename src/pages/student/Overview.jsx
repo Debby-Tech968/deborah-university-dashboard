@@ -17,13 +17,39 @@ import {
 } from "../../components/Ui";
 import { Icon } from "../../components/Icon";
 import { classNames, naira, nairaCompact } from "../../lib/format";
+import { formatCampusDate, getGreeting, useCampusNow } from "../../lib/time";
 
 export default function StudentOverview() {
-  const { navigate, finance, balance, toast } = useApp();
+  const { session, navigate, finance, balance, toast } = useApp();
+  const now = useCampusNow();
+  const greeting = getGreeting(now);
+  const dateLabel = formatCampusDate(now);
+  const scheduleDate = formatCampusDate(now, {
+    weekday: "long",
+    day: "numeric",
+    month: "long"
+  });
+  const shortDate = formatCampusDate(now, {
+    weekday: "short",
+    day: "2-digit",
+    month: "short"
+  }).replace(",", "");
   const [deadlines, setDeadlines] = useState(DEADLINES);
   const openDeadlines = deadlines.filter((item) => !item.done);
   const netPayable = finance.totalTuition - finance.scholarship;
   const paidPercent = Math.min(100, (finance.paid / Math.max(1, netPayable)) * 100);
+  const firstName = session.firstName || session.name.split(" ")[0];
+  const gpa = Number(session.gpa) || 0;
+  const creditsEarned = { 1: 24, 2: 60, 3: 96, 4: 120 }[session.year] ?? 96;
+  const degreeProgress = Math.round((creditsEarned / 120) * 100);
+  const gpaTrend = [0.44, 0.27, 0.14, 0.06, 0].map((delta) =>
+    Number(Math.max(0, Math.min(4, gpa - delta)).toFixed(2))
+  );
+  const gpaTerms = GPA_TERMS.map((term, index) => ({
+    ...term,
+    value: gpaTrend[index]
+  }));
+  const gpaDelta = (gpaTrend[4] - gpaTrend[3]).toFixed(2);
 
   const toggleDeadline = (item) => {
     setDeadlines((current) =>
@@ -41,9 +67,9 @@ export default function StudentOverview() {
           <p className="page-kicker">
             <Icon name="cap" /> Student portal
           </p>
-          <h1>Good morning, Amara.</h1>
+          <h1>{greeting}, {firstName}.</h1>
           <p className="page-sub">
-            {UNIVERSITY.dateLabel} · {UNIVERSITY.term}, Week {UNIVERSITY.week}
+            {dateLabel} · {UNIVERSITY.term}, Week {UNIVERSITY.week}
           </p>
         </div>
         <div className="page-actions">
@@ -78,25 +104,27 @@ export default function StudentOverview() {
       <section className="kpi-grid" aria-label="Academic snapshot">
         <KpiCard
           label="Current GPA"
-          value="3.72"
+          value={gpa > 0 ? gpa.toFixed(2) : "—"}
           icon="award"
           tone="gold"
-          delta="0.14"
+          delta={gpa > 0 ? gpaDelta : "—"}
           note="versus Spring 2026"
-          spark={[3.28, 3.45, 3.58, 3.66, 3.72]}
+          spark={gpaTrend}
         />
         <KpiCard
           label="Credits earned"
           value={
             <>
-              96<small> / 120</small>
+              {creditsEarned}<small> / 120</small>
             </>
           }
           icon="cap"
           delta="On track"
           deltaTone="flat"
           note="to graduate June 2028"
-          spark={[48, 60, 72, 84, 96]}
+          spark={[creditsEarned - 48, creditsEarned - 36, creditsEarned - 24, creditsEarned - 12, creditsEarned].map(
+            (value) => Math.max(0, value)
+          )}
         />
         <KpiCard
           label="Outstanding fees"
@@ -125,8 +153,8 @@ export default function StudentOverview() {
           <Panel flush>
             <PanelHead
               title="Today's schedule"
-              subtitle="4 sessions · Wednesday, 28 October"
-              actions={<span className="tag">Wed 28 Oct</span>}
+              subtitle={`4 sessions · ${scheduleDate}`}
+              actions={<span className="tag">{shortDate}</span>}
             />
             <div className="schedule-list">
               {SCHEDULE.map((item) => (
@@ -225,27 +253,32 @@ export default function StudentOverview() {
         <div className="stack">
           <Panel className="ring-card">
             <h2>Degree progress</h2>
-            <div className="ring" style={{ "--p": 80 }} role="img" aria-label="80 percent of degree credits completed">
+            <div
+              className="ring"
+              style={{ "--p": degreeProgress }}
+              role="img"
+              aria-label={`${degreeProgress} percent of degree credits completed`}
+            >
               <div className="ring-inner">
-                <strong>80%</strong>
+                <strong>{degreeProgress}%</strong>
                 <span>completed</span>
               </div>
             </div>
             <div className="ring-legend">
               <span>
-                <b>96</b> earned
+                <b>{creditsEarned}</b> earned
               </span>
               <span>
-                <b>24</b> remaining
+                <b>{120 - creditsEarned}</b> remaining
               </span>
             </div>
-            <p className="ring-note">BSc Computer Science · Year 3</p>
+            <p className="ring-note">{session.title}</p>
           </Panel>
 
           <Panel>
             <PanelHead title="GPA by term" subtitle="Steady progress since Fall 2024" plain />
             <BarChart
-              items={GPA_TERMS}
+              items={gpaTerms}
               maxValue={4}
               valueFormatter={(value) => value.toFixed(2)}
             />

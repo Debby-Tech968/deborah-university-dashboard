@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  COURSES,
   GPA_TERMS,
   GRADES,
   MY_COURSES,
@@ -25,13 +26,41 @@ const GRADE_TONES = {
 };
 
 export default function StudentCourses({ initialTab = "courses" }) {
-  const { toast } = useApp();
+  const { session, toast } = useApp();
   const [tab, setTab] = useState(TABS.some((item) => item.id === initialTab) ? initialTab : "courses");
   const [registration, setRegistration] = useState(REGISTRATION_COURSES);
 
   useEffect(() => {
     if (TABS.some((item) => item.id === initialTab)) setTab(initialTab);
   }, [initialTab]);
+
+  const gpa = Number(session.gpa) || 0;
+  const creditsEarned = { 1: 24, 2: 60, 3: 96, 4: 120 }[session.year] ?? 96;
+  const cumulativeGpa = Math.max(0, gpa - 0.08);
+  const gpaTerms = GPA_TERMS.map((term, index) => ({
+    ...term,
+    value: Number(
+      Math.max(0, Math.min(4, gpa - [0.44, 0.27, 0.14, 0.06, 0][index])).toFixed(2)
+    )
+  }));
+  const generalCodes = ["GIT 101", "MTH 210", "CSC 350", "INF 220"];
+  const myCourses =
+    session.id === "DU-2023-0142"
+      ? MY_COURSES
+      : [
+          ...COURSES.filter((course) => course.department === session.department),
+          ...COURSES.filter((course) => generalCodes.includes(course.code))
+        ]
+          .filter(
+            (course, index, list) =>
+              list.findIndex((item) => item.code === course.code) === index
+          )
+          .slice(0, 6)
+          .map((course, index) => ({
+            ...course,
+            progress: 48 + ((index * 9) % 38),
+            grade: ["A", "B+", "A–", "B", "IP", "B+"][index % 6]
+          }));
 
   const selected = registration.filter((course) => course.selected);
   const selectedCredits = selected.reduce((sum, course) => sum + course.credits, 0);
@@ -62,6 +91,8 @@ export default function StudentCourses({ initialTab = "courses" }) {
   const downloadTranscript = () => {
     const rows = [
       ["Deborah University — unofficial transcript"],
+      ["Student", session.name],
+      ["Program", session.program],
       ["Code", "Course", "Term", "Credits", "Grade", "Points"],
       ...GRADES.map((grade) => [
         grade.code,
@@ -125,12 +156,13 @@ export default function StudentCourses({ initialTab = "courses" }) {
         >
           <div className="results-line">
             <span>
-              <strong>{MY_COURSES.length}</strong> courses · 18 credits this term
+              <strong>{myCourses.length}</strong> courses ·{" "}
+              {myCourses.reduce((sum, course) => sum + course.credits, 0)} credits this term
             </span>
             <span>Fall 2026 · Week 9</span>
           </div>
           <div className="my-course-grid">
-            {MY_COURSES.map((course) => (
+            {myCourses.map((course) => (
               <article className="my-course" key={course.code}>
                 <div className="my-course-top">
                   <span className="course-code">{course.code}</span>
@@ -290,18 +322,18 @@ export default function StudentCourses({ initialTab = "courses" }) {
           <div className="grade-summary">
             <div className="grade-stat grade-stat--highlight">
               <span>Term GPA</span>
-              <strong>3.72</strong>
+              <strong>{gpa > 0 ? gpa.toFixed(2) : "—"}</strong>
               <small>Fall 2026 · in progress</small>
             </div>
             <div className="grade-stat">
               <span>Cumulative GPA</span>
-              <strong>3.64</strong>
-              <small>Across 96 graded credits</small>
+              <strong>{gpa > 0 ? cumulativeGpa.toFixed(2) : "—"}</strong>
+              <small>Across {creditsEarned} graded credits</small>
             </div>
             <div className="grade-stat">
               <span>Credits earned</span>
-              <strong>96</strong>
-              <small>24 remaining for graduation</small>
+              <strong>{creditsEarned}</strong>
+              <small>{120 - creditsEarned} remaining for graduation</small>
             </div>
           </div>
 
@@ -370,7 +402,7 @@ export default function StudentCourses({ initialTab = "courses" }) {
         <Panel className="gpa-panel">
           <PanelHead title="GPA trend" subtitle="A steady climb across five terms" plain />
           <div className="gpa-terms">
-            {GPA_TERMS.map((term) => (
+            {gpaTerms.map((term) => (
               <div key={term.label}>
                 <span>{term.label}</span>
                 <strong>{term.value.toFixed(2)}</strong>

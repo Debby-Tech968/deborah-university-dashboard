@@ -1,11 +1,19 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { DEMO_ACCOUNTS, NOTIFICATIONS, STUDENT_FINANCE } from "../data";
+import {
+  ADMIN_ACCOUNTS,
+  buildStudentFinance,
+  NOTIFICATIONS,
+  STUDENTS,
+  STUDENT_ACCOUNTS,
+  studentAccount
+} from "../data";
 import { naira, uid } from "../lib/format";
 
 const AppContext = createContext(null);
 
 const SESSION_KEY = "deborah.session.v2";
-const FINANCE_KEY = "deborah.finance.v2";
+const FINANCE_KEY = "deborah.finance.v3";
+const LEGACY_FINANCE_KEY = "deborah.finance.v2";
 
 function readSession() {
   try {
@@ -16,19 +24,40 @@ function readSession() {
   }
 }
 
-function readFinance() {
+function mergeFinance(saved, fallback) {
+  if (!saved || typeof saved !== "object") return fallback;
+  return {
+    ...fallback,
+    ...saved,
+    plan: Array.isArray(saved.plan) ? saved.plan : fallback.plan,
+    payments: Array.isArray(saved.payments) ? saved.payments : fallback.payments
+  };
+}
+
+function readFinances() {
+  const next = Object.fromEntries(
+    STUDENTS.map((student) => [student.id, buildStudentFinance(student)])
+  );
+
   try {
     const raw = localStorage.getItem(FINANCE_KEY);
-    if (!raw) return structuredClone(STUDENT_FINANCE);
-    const parsed = JSON.parse(raw);
-    return {
-      ...structuredClone(STUDENT_FINANCE),
-      ...parsed,
-      payments: Array.isArray(parsed.payments) ? parsed.payments : STUDENT_FINANCE.payments
-    };
+    if (raw) {
+      const saved = JSON.parse(raw);
+      Object.keys(next).forEach((id) => {
+        if (saved?.[id]) next[id] = mergeFinance(saved[id], next[id]);
+      });
+      return next;
+    }
+
+    const legacy = localStorage.getItem(LEGACY_FINANCE_KEY);
+    if (legacy && next[STUDENTS[0].id]) {
+      next[STUDENTS[0].id] = mergeFinance(JSON.parse(legacy), next[STUDENTS[0].id]);
+    }
   } catch {
-    return structuredClone(STUDENT_FINANCE);
+    /* fall back to seeded records */
   }
+
+  return next;
 }
 
 function getRoute() {
@@ -49,8 +78,12 @@ export function AppProvider({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [toasts, setToasts] = useState([]);
   const [notifications, setNotifications] = useState(NOTIFICATIONS);
-  const [finance, setFinance] = useState(readFinance);
+  const [finances, setFinances] = useState(readFinances);
   const routeTimer = useRef(null);
+  const activeStudentId = session?.role === "student" ? session.id : STUDENTS[0].id;
+  const finance =
+    finances[activeStudentId] ??
+    (session?.role === "student" ? buildStudentFinance(session) : buildStudentFinance(STUDENTS[0]));
 
   useEffect(() => {
     const onHashChange = () => {
@@ -80,11 +113,11 @@ export function AppProvider({ children }) {
 
   useEffect(() => {
     try {
-      localStorage.setItem(FINANCE_KEY, JSON.stringify(finance));
+      localStorage.setItem(FINANCE_KEY, JSON.stringify(finances));
     } catch {
       /* storage can be unavailable in private modes */
     }
-  }, [finance]);
+  }, [finances]);
 
   const navigate = useCallback(
     (path) => {
@@ -94,6 +127,7 @@ export function AppProvider({ children }) {
         window.scrollTo({ top: 0, behavior: "smooth" });
         return;
       }
+      setRoute(next);
       window.location.hash = next;
     },
     []
@@ -101,16 +135,43 @@ export function AppProvider({ children }) {
 
   const login = useCallback(
     (role, email, password) => {
-      const account = DEMO_ACCOUNTS[role];
-      if (!account) return { ok: false, error: "Choose a portal to continue." };
-      if (email.trim().toLowerCase() !== account.email.toLowerCase()) {
-        return { ok: false, error: "That email is not registered for this portal." };
+      const normalized = email.trim().toLowerCase();
+
+      if (role === "admin") {
+        const account = ADMIN_ACCOUNTS.find(
+          (item) => item.email.toLowerCase() === normalized
+        );
+        if (!account) {
+          return { ok: false, error: "That email is not registered for the admin portal." };
+        }
+        if (password !== account.password) {
+          return {
+            ok: false,
+            error: "Incorrect password. Administrator demo accounts use admin123."
+          };
+        }
+        setSession(safeAccount(account));
+        navigate("/admin");
+        return { ok: true };
+      }
+
+      const account = STUDENT_ACCOUNTS.find(
+        (item) => item.email.toLowerCase() === normalized
+      );
+      if (!account) {
+        return {
+          ok: false,
+          error: "That student email is not in the Deborah directory."
+        };
       }
       if (password !== account.password) {
-        return { ok: false, error: "Incorrect password. Use the demo credentials below if needed." };
+        return {
+          ok: false,
+          error: "Incorrect password. Student demo accounts use student123."
+        };
       }
       setSession(safeAccount(account));
-      navigate(role === "admin" ? "/admin" : "/student");
+      navigate("/student");
       return { ok: true };
     },
     [navigate]
@@ -133,6 +194,29 @@ export function AppProvider({ children }) {
   const dismissToast = useCallback((id) => {
     setToasts((current) => current.filter((item) => item.id !== id));
   }, []);
+
+  const openStudentPortal = useCallback(
+    (student) => {
+      if (!session || session.role !== "admin" || !student) return;
+      const account = studentAccount(student);
+      setSession({
+        ...safeAccount(account),
+        adminPreview: session
+      });
+      setSidebarOpen(false);
+      navigate("/student");
+      toast(`Viewing ${student.first} ${student.last}'s student portal.`, "info");
+    },
+    [session, navigate, toast]
+  );
+
+  const exitAdminPreview = useCallback(() => {
+    if (!session?.adminPreview) return;
+    setSession(session.adminPreview);
+    setSidebarOpen(false);
+    navigate("/admin/students");
+    toast("Returned to the administrator portal.", "info");
+  }, [session, navigate, toast]);
 
   const markAllRead = useCallback(() => {
     setNotifications((current) => current.map((item) => ({ ...item, unread: false })));
@@ -168,15 +252,21 @@ export function AppProvider({ children }) {
         method,
         status: "Completed"
       };
-      setFinance((current) => ({
-        ...current,
-        paid: current.paid + value,
-        payments: [payment, ...current.payments]
-      }));
+      setFinances((current) => {
+        const activeFinance = current[activeStudentId] ?? finance;
+        return {
+          ...current,
+          [activeStudentId]: {
+            ...activeFinance,
+            paid: activeFinance.paid + value,
+            payments: [payment, ...activeFinance.payments]
+          }
+        };
+      });
       toast(`${naira(value)} payment received. Your receipt is ready.`, "success");
       return payment;
     },
-    [finance, toast]
+    [activeStudentId, finance, toast]
   );
 
   useEffect(() => {
@@ -217,7 +307,9 @@ export function AppProvider({ children }) {
       markRead,
       finance,
       balance,
-      payTuition
+      payTuition,
+      openStudentPortal,
+      exitAdminPreview
     }),
     [
       session,
@@ -236,7 +328,9 @@ export function AppProvider({ children }) {
       markRead,
       finance,
       balance,
-      payTuition
+      payTuition,
+      openStudentPortal,
+      exitAdminPreview
     ]
   );
 

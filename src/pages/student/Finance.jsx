@@ -29,7 +29,7 @@ function buildPlan(finance) {
 }
 
 export default function StudentFinance() {
-  const { finance, balance, payTuition, toast } = useApp();
+  const { session, finance, balance, payTuition, toast } = useApp();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState("form");
   const [amount, setAmount] = useState("");
@@ -91,8 +91,8 @@ export default function StudentFinance() {
       "OFFICIAL FEE RECEIPT",
       "",
       `Receipt: ${payment.ref}`,
-      "Student: Amara Okafor",
-      "Program: Computer Science",
+      `Student: ${session.name}`,
+      `Program: ${session.program}`,
       `Amount: ${naira(payment.amount)}`,
       `Method: ${payment.method}`,
       `Date: ${payment.date}`,
@@ -108,7 +108,8 @@ export default function StudentFinance() {
   const downloadStatement = () => {
     const rows = [
       ["Deborah University — fee statement"],
-      ["Student", "Amara Okafor"],
+      ["Student", session.name],
+      ["Program", session.program],
       ["Session", UNIVERSITY.session],
       ["Total tuition (NGN)", finance.totalTuition],
       ["Scholarship (NGN)", finance.scholarship],
@@ -438,7 +439,7 @@ export default function StudentFinance() {
             <div className="payment-check">
               <Icon name="check" />
             </div>
-            <h3>Thank you, Amara.</h3>
+            <h3>Thank you, {session.firstName || session.name.split(" ")[0]}.</h3>
             <p>
               Your payment of <strong>{naira(receipt?.amount || 0)}</strong> has been recorded.
               A receipt has been added to your payment history.
